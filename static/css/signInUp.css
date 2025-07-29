@@ -1,0 +1,262 @@
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  font-family: Arial, sans-serif;
+}
+
+html, body {
+  height: 100%;
+  width: 100%;
+}
+
+.main-body {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  background: linear-gradient(135deg, #6A0DAD 0%, #5e0acb 30%, #3a0ca3 60%, #2f23f6 100%);
+  padding: 0 20px;
+}
+
+.wrapper {
+  display: flex;
+  max-width: 980px;
+  width: 100%;
+  height: 580px;
+  border-radius: 16px;
+  overflow: hidden;
+  position: relative;
+}
+
+/* Left: Branding */
+.left-section {
+  width: 50%;
+  padding: 60px 40px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  background: transparent;
+  color: #fff;
+  text-align: center;
+}
+
+.heading {
+  font-size: 2.8rem;
+  font-weight: bold;
+  margin-bottom: 20px;
+  letter-spacing: 1px;
+}
+
+.subheading {
+  font-size: 1.4rem;
+  line-height: 1.6;
+  color: #e0d7f3;
+}
+
+/* Right: Login */
+.right-section {
+  width: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+}
+
+.glass-card {
+  width: 90%;
+  padding: 40px 32px;
+  border-radius: 20px;
+  background: rgba(255, 255, 255, 0.08);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  box-shadow:
+    inset 0 0 15px rgba(255, 255, 255, 0.1),
+    0 8px 32px rgba(0, 0, 0, 0.3);
+  animation: floatUp 1s ease-out forwards;
+  transform: translateY(20px);
+  opacity: 0;
+}
+
+@keyframes floatUp {
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.login-title {
+  text-align: center;
+  font-size: 2rem;
+  margin-bottom: 25px;
+  color: #fff;
+}
+
+/* Inputs */
+.input-field {
+  position: relative;
+  border-bottom: 2px solid #ccc;
+  margin: 20px 0;
+}
+
+.input-field input {
+  width: 100%;
+  height: 40px;
+  background: transparent;
+  border: none;
+  outline: none;
+  color: #fff;
+  font-size: 16px;
+  padding-left: 4px;
+}
+
+/* Chrome autofill fix */
+input:-webkit-autofill {
+  -webkit-box-shadow: 0 0 0 30px transparent inset !important;
+  -webkit-text-fill-color: #fff !important;
+  transition: background-color 5000s ease-in-out 0s;
+}
+
+/* .input-field input:focus {
+  border-bottom: 2px solid #fff;
+} */
+
+
+.input-field label {
+  position: absolute;
+  top: 50%;
+  left: 4px;
+  transform: translateY(-100%);
+  color: #ccc;
+  font-size: 16px;
+  pointer-events: none;
+  transition: 0.2s ease;
+}
+
+.input-field input:focus ~ label,
+.input-field input:valid ~ label,
+.input-field input:not(:placeholder-shown) ~ label,
+.input-field input:hover ~ label {
+  font-size: 0.8rem;
+  top: 8px;
+  color: #eee;
+  text-shadow: 0 0 1px #eae4ff, 0 0 2px #d1c4f7;
+
+
+}
+.input-field input:not(:focus) ~ label {
+  text-shadow: none;
+}
+
+
+/* Options row */
+.forget {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin: 20px 0 30px;
+  font-size: 0.9rem;
+  color: #eee;
+}
+
+.forget input[type="checkbox"] {
+  accent-color: #fff;
+}
+
+.forget a {
+  color: #ccc;
+  text-decoration: none;
+}
+
+.forget a:hover {
+  text-decoration: underline;
+}
+
+button {
+  width: 100%;
+  padding: 12px;
+  background: rgba(255, 255, 255, 0.1); /* semi-transparent */
+  color: white;
+  font-weight: 600;
+  border: 1px solid rgba(255, 255, 255, 0.4); /* subtle white border */
+  border-radius: 12px;
+  font-size: 16px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  backdrop-filter: blur(6px); /* glass effect */
+  -webkit-backdrop-filter: blur(6px);
+  box-shadow: 0 4px 20px rgba(255, 255, 255, 0.1);
+}
+
+button:hover {
+  background: rgba(255, 255, 255, 0.25); /* lighter glass on hover */
+  border: 1px solid #ffffff;
+  transform: scale(1.03);
+}
+
+
+
+/* Register Text */
+.register {
+  margin-top: 30px;
+  text-align: center;
+  font-size: 0.95rem;
+  color: #eee;
+}
+
+.register a {
+  color: #fff;
+  text-decoration: none;
+  font-weight: bold;
+}
+
+.register a:hover {
+  text-decoration: underline;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .wrapper {
+    flex-direction: column;
+    height: auto;
+  }
+
+  .left-section, .right-section {
+    width: 100%;
+    padding: 30px 20px;
+  }
+
+  .left-section {
+    border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+  }
+}
+
+
+/* for the invalid pops */
+.error-popup {
+  position: relative;
+  background-color: rgba(255, 0, 0, 0.2);
+  border: 1px solid red;
+  color: #ff4d4d;
+  padding: 12px 20px;
+  text-align: center;
+  border-radius: 5px;
+  font-weight: bold;
+  animation: shake 0.3s ease-in-out;
+  margin-bottom: 20px;
+}
+
+/* Hide initially */
+.hidden {
+  display: none;
+}
+
+/* Shaking animation */
+@keyframes shake {
+  0% { transform: translateX(0); }
+  20% { transform: translateX(-8px); }
+  40% { transform: translateX(8px); }
+  60% { transform: translateX(-8px); }
+  80% { transform: translateX(8px); }
+  100% { transform: translateX(0); }
+}

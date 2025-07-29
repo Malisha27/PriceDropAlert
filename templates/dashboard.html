@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>{% block title %}Common Dashboard for all tabs{% endblock %}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/dashboard.css') }}">
+    <!-- <link href="https://fonts.googleapis.com/css2?family=Luckiest+Guy&display=swap" rel="stylesheet"> -->
+
+
+</head>
+<body>
+
+    <!-- 🔝 Navbar -->
+    <nav class="navbar">
+        <ul class="nav-list">
+            <li><a href="{{ url_for('home') }}">Home</a></li>
+            <li><a href="{{ url_for('watchlist') }}">Watchlist</a></li>
+            <li><a href="{{ url_for('myProfile') }}">My Profile</a></li>
+        </ul>
+    </nav>
+
+    <!-- 🔽 Content area -->
+    <div class="content">
+        {% block content %}
+        {% endblock %}
+    </div>
+</body>
+</html>
+

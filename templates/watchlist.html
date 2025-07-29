@@ -1,0 +1,226 @@
+{% extends "dashboard.html" %}
+
+{% block title %}Watchlist | Dashboard{% endblock %}
+
+{% block content %}
+<style>
+  .watchlist-container {
+    display: flex;
+    flex-direction: column;
+    gap: 2rem;
+  }
+
+  .product-card {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    padding: 1.5rem;
+    border-radius: 20px;
+    background: rgba(255, 255, 255, 0.06);
+    backdrop-filter: blur(12px);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    transition: transform 0.2s ease;
+  }
+
+  .product-card:hover {
+    transform: scale(1.01);
+  }
+
+  .product-info {
+    flex: 1;
+    min-width: 250px;
+    margin-left: 1rem;
+  }
+
+  .product-title a {
+    font-size: 1.3rem;
+    font-weight: 600;
+    color: #ffe5ff;
+    text-decoration: none;
+  }
+
+  .product-title a:hover {
+    color: #ffd700;
+  }
+
+  .product-prices {
+    margin-top: 0.6rem;
+    display: flex;
+    gap: 1rem;
+    flex-wrap: wrap;
+  }
+
+  .price-tag {
+    font-size: 0.95rem;
+    font-weight: bold;
+    padding: 6px 14px;
+    border-radius: 10px;
+  }
+
+  .price-green {
+    background: #d1ffe5;
+    color: #106d3d;
+  }
+
+  .price-red {
+    background: #ffd6db;
+    color: #841b2d;
+  }
+
+  .price-gray {
+    background: #e0dfff;
+    color: #3e3a5e;
+  }
+
+  .action-buttons {
+    margin-top: 12px;
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+
+  .btn-action {
+    padding: 10px 20px;
+    font-size: 0.95rem;
+    font-weight: bold;
+    border: none;
+    border-radius: 12px;
+    text-decoration: none;
+    transition: all 0.3s ease;
+    color: white;
+    background: linear-gradient(to right, #8e44ad, #6a0dad);
+    cursor: pointer;
+  }
+
+  .btn-action:hover {
+    background: #b67ae6;
+    transform: scale(1.05);
+  }
+
+  .btn-delete {
+    background: linear-gradient(to right, #510785, #2d034b);
+  }
+
+  .btn-delete:hover {
+    background: #7912c2;
+  }
+
+  .graph-container {
+    width: 220px;
+    height: 120px;
+  }
+
+  header.home-header {
+    text-align: center;
+    margin-bottom: 2rem;
+  }
+
+  header.home-header h1 {
+    font-size: 2.2rem;
+    margin-bottom: 0.5rem;
+    color: #ffe5ff;
+  }
+
+  header.home-header p {
+    font-size: 1.1rem;
+    color: #ddd;
+  }
+</style>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<header class="home-header">
+  <h1>📈 Your Watchlist</h1>
+  <p>Track product prices & get notified when they drop!</p>
+</header>
+
+<div class="watchlist-container">
+  {% for product in products %}
+    <div class="product-card">
+      <!-- Product Info -->
+      <div class="product-info">
+        <div class="product-title">
+          <a href="{{ product.url }}" target="_blank">{{ product.product_title }}</a>
+        </div>
+        <div class="product-prices">
+          <span class="price-tag price-{{ product.price_status }}">
+            Current: ₹{{ product.current_price }}
+          </span>
+          <span class="price-tag price-gray">
+            Target: ₹{{ product.target_price }}
+          </span>
+        </div>
+
+        <!-- Action Buttons -->
+        <div class="action-buttons">
+          <a href="{{ url_for('track_product', product_id=product.id) }}" class="btn-action">✏️ Update Target</a>
+          <form method="POST" action="{{ url_for('delete_product', product_id=product.id) }}" onsubmit="return confirm('Are you sure you want to delete this product?');">
+            <button type="submit" class="btn-action btn-delete">🗑️</button>
+          </form>
+        </div>
+      </div>
+
+      <!-- Chart -->
+      {% if product.history_prices %}
+        <div class="graph-container">
+          <canvas id="chart-{{ product.id }}"></canvas>
+        </div>
+      {% else %}
+        <div style="color: #ccc;">No price data</div>
+      {% endif %}
+    </div>
+  {% endfor %}
+</div>
+
+<script>
+  {% for product in products %}
+    {% if product.history_prices %}
+      const ctx{{ product.id }} = document.getElementById('chart-{{ product.id }}').getContext('2d');
+      new Chart(ctx{{ product.id }}, {
+        type: 'line',
+        data: {
+          labels: {{ product.history_dates | tojson }},
+          datasets: [{
+            label: 'Price History',
+            data: {{ product.history_prices | tojson }},
+            borderColor: '{{ 'green' if product.price_status == 'green' else ('red' if product.price_status == 'red' else '#888') }}',
+            borderWidth: 2,
+            fill: false,
+            tension: 0.3,
+            pointRadius: 2,
+            pointHoverRadius: 5
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { display: false },
+            tooltip: {
+              callbacks: {
+                label: function(context) {
+                  return '₹' + context.parsed.y;
+                }
+              }
+            }
+          },
+          scales: {
+            x: {
+              ticks: { display: false },
+              grid: { display: false },
+              drawBorder: true,
+              borderColor: 'yellow'
+            },
+            y: {
+              ticks: { display: false },
+              grid: { display: false }
+            }
+          }
+        }
+      });
+    {% endif %}
+  {% endfor %}
+</script>
+{% endblock %}

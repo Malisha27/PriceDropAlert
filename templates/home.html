@@ -1,0 +1,48 @@
+{% extends "dashboard.html" %}
+
+{% block title %}Home | Dashboard{% endblock %}
+
+{% block content %}
+    <!-- <div class="url-box-container">
+        <h2 class="title">Track Product Price</h2>
+        <form method="POST" action="/home">
+            <input type="text" name="product_url" placeholder="Paste product URL here..." required class="url-input" />
+            <button type="submit" class="submit-button">Track Now</button>
+        </form>
+    </div> -->
+
+    <div class="cloud-container">
+        <svg class="cloud-svg" viewBox="0 0 640 360" preserveAspectRatio="xMidYMid meet">
+            <path fill="white" d=
+                "M 162.27545497089085 555.6886317672844 
+                A 50 50 0 1 1 87.42515305559067 388.02395245272237 
+                A 50 50 0 1 1 172.45509064126145 206.88622882980067 
+                A 50 50 0 1 1 350 200 
+                A 50 50 0 1 1 587.4251773614369 211.67664702923707 
+                A 50 50 0 1 1 742.2155661140374 414.37125705673304 
+                A 50 50 0 1 1 614.6706413708761 549.1018198178914 
+                A 50 50 0 1 1 330.23952780512275 557.1856289381038 
+                A 50 50 0 1 1 162.27545497089085 555.6886317672844 Z" 
+                opacity="0.15" transform="translate(5, -60) scale(0.8,0.6)" />
+        </svg>
+
+        <div class="form-content">
+            <h2>Track Product Price</h2>
+                <form method="POST" action="/home">
+                    <input type="text" name="product_url" placeholder="Paste product URL here..." required class="url-input" />
+                    <button type="submit" class="submit-button">Track Now</button>
+                </form>
+        </div>
+    </div>
+
+{% endblock %}
+
+<!-- {% block scripts %}
+<script>
+  window.addEventListener('load', () => {
+    setTimeout(() => {
+      document.querySelector('.title').classList.add('show');
+    }, 500);
+  });
+</script>
+{% endblock %} -->

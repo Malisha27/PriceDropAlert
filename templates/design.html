@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Welcome</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/design.css') }}">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@600&display=swap" rel="stylesheet">
+</head>
+<body>
+  <div class="container">
+    <img src="{{ url_for('static', filename='icons/amazon.png') }}" class="icon amazon drop" />
+    <img src="{{ url_for('static', filename='icons/flipkart.png') }}" class="icon flipkart drop" />
+    <img src="{{ url_for('static', filename='icons/boat.png') }}" class="icon boat drop" />
+    <img src="{{ url_for('static', filename='icons/nykaa.png') }}" class="icon nykaa drop" />
+    
+    <h1 class="title hidden">Price Drop Alert</h1>
+    <p class="message hidden">Press any key or click to continue...</p>
+  </div>
+
+  <script>
+    document.addEventListener('keydown', () => window.location.href = '/signIn');
+    document.addEventListener('click', () => window.location.href = '/signIn');
+
+    // Reveal title after bounce
+    window.addEventListener('load', () => {
+
+      setTimeout(() => {
+        document.querySelector('.title').classList.remove('hidden');
+      }, 2500);
+
+      setTimeout(() => {
+      document.querySelector('.message').classList.remove('hidden');
+    }, 3500);
+    });
+  </script>
+</body>
+</html>
+

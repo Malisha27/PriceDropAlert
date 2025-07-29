@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Register | Price Drop Alert</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/signInUp.css') }}" />
+  <script src="{{ url_for('static', filename='js/validate.js') }}"></script>
+
+</head>
+<body class="main-body">
+  <div class="wrapper">
+    
+    <!-- Left Section -->
+    <div class="left-section">
+      <h1 class="heading">Price Drop Alert</h1>
+      <p class="subheading">Track the Drop,<br/>Shop Nonstop!</p>
+    </div>
+
+    <!-- Right Section: Glass Registration Form -->
+    <div class="right-section">
+      <div class="glass-card">
+        <h2 class="login-title">Register</h2>
+        <form action="/signUp" method="POST">
+          <div class="input-field">
+            <input type="text" name="name" required />
+            <label>Enter your name</label>
+          </div>
+          <div class="input-field">
+            <input type="email" name="email" required />
+            <label>Enter your email</label>
+          </div>
+          <div class="input-field">
+            <input type="password" name="password" required />
+            <label>Create password</label>
+          </div>
+          <div class="input-field">
+            <input type="password" name="confirm_password" required />
+            <label>Confirm password</label>
+          </div>
+          <button type="submit">Sign Up</button>
+        </form>
+
+        <div class="register">
+          <p>Already have an account? <a href="/signIn">Login</a></p>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</body>
+</html>

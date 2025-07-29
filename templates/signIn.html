@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Login | PriceDropAlert</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/signInUp.css') }}">
+  <script src="{{ url_for('static', filename='js/flashHandler.js') }}"></script>
+
+</head>
+<body class="main-body">
+  <div class="wrapper">
+
+    <!-- Left branding section -->
+    <div class="left-section">
+      <h1 class="heading">Price Drop Alert</h1>
+      <p class="subheading">Track the Drop,<br>Shop Nonstop!</p>
+    </div>
+
+    <!-- Right login section with glass effect -->
+    <div class="right-section">
+      <div class="glass-card">
+        {% with messages = get_flashed_messages() %}
+            {% if messages %}
+                <div id="errorPopup" class="error-popup">
+                    {{ messages[0] }}
+                </div>
+            {% endif %}
+        {% endwith %}
+
+
+
+        <form method="POST" action="/signIn">
+          <h2 class="login-title">Login</h2>
+
+          <div class="input-field">
+            <input type="email" name="email" id="email" required placeholder=" " />
+            <label for="email">Enter your email</label>
+          </div>
+
+          <div class="input-field">
+            <input type="password" name="password" id="password" required placeholder=" " />
+            <label for="password">Enter your password</label>
+          </div>
+
+          <div class="forget">
+            <label><input type="checkbox" /> Remember me</label>
+            <a href="/forgotPassword">Forgot password?</a>
+          </div>
+
+          <button type="submit">Log In</button>
+
+          <div class="register">
+            <p>Don’t have an account? <a href="/signUp">Register</a></p>
+          </div>
+        </form>
+      </div>
+    </div>
+
+  </div>
+</body>
+</html>
