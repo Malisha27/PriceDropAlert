@@ -5,4 +5,4 @@ flask
 flask_sqlalchemy
 flask-login
 
-//you can optionally  Install SQLite Viewer Extension as a vscode Extension
+
