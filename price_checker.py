@@ -91,7 +91,6 @@
 # if __name__ == "__main__":
 #     update_prices_and_notify()
 
-
 from app import app, db, TrackedProduct, PriceHistory, send_mail
 from datetime import datetime
 from bs4 import BeautifulSoup
@@ -115,7 +114,6 @@ def fetch_current_price(product_url):
     soup1 = BeautifulSoup(response.content, "html.parser")
     soup2 = BeautifulSoup(soup1.prettify(), "html.parser")
 
-    # Identify platform
     if "flipkart.com" in product_url:
         try:
             current_price = soup2.find('div', class_='Nx9bqj CxhGGd').get_text(strip=True).strip()[1:]
@@ -153,10 +151,8 @@ def update_prices_and_notify():
             print(f"❌ Could not fetch price for {product.url}")
             continue
 
-        # Update current price in DB
         product.current_price = current_price
 
-        # Add to Price History if today's entry doesn't exist
         today = datetime.utcnow().date()
         existing_entry = PriceHistory.query.filter(
             PriceHistory.product_id == product.id,
@@ -167,13 +163,11 @@ def update_prices_and_notify():
             new_entry = PriceHistory(product_id=product.id, price=current_price)
             db.session.add(new_entry)
 
-        # Maintain only last 7 entries
         history = PriceHistory.query.filter_by(product_id=product.id).order_by(PriceHistory.date).all()
         while len(history) > 7:
             db.session.delete(history[0])
             history.pop(0)
 
-        # Send email if price drops
         if product.target_price is not None and current_price <= product.target_price:
             send_mail(product.user.email, product.product_title, product.url, product.target_price)
             print(f"📧 Sent email to {product.user.email} for {product.product_title}")
@@ -182,5 +176,5 @@ def update_prices_and_notify():
     print("✅ Price check completed.")
 
 if __name__ == "__main__":
-    with app.app_context():  # <-- WRAP IT HERE
+    with app.app_context():
         update_prices_and_notify()
