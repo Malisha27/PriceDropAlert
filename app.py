@@ -353,7 +353,8 @@ def track_product(product_id):
 @app.route('/watchlist')
 @login_required
 def watchlist():
-    user_products = TrackedProduct.query.filter_by(user_id=current_user.id).all()
+    # changed so that it sorts by latest product added
+    user_products = TrackedProduct.query.filter_by(user_id=current_user.id).order_by(TrackedProduct.date_added.desc()).all()
 
     for product in user_products:
         history = (
