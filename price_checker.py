@@ -97,6 +97,9 @@ from bs4 import BeautifulSoup
 import requests
 from sqlalchemy import func
 import os
+from dotenv import load_dotenv
+
+load_dotenv()
 
 def clean_price(price_str):
     import re
@@ -107,7 +110,7 @@ def clean_price(price_str):
     return float(price_str)
 
 def fetch_current_price(product_url):
-    SCRAPERAPI_KEY = 'd147aa3553b782e49185ddea6c5f41ee'
+    SCRAPERAPI_KEY = os.environ.get('SCRAPERAPI_KEY')
     headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"}
     api_url = f'http://api.scraperapi.com/?api_key={SCRAPERAPI_KEY}&url={product_url}'
     response = requests.get(api_url, headers=headers, timeout=30)

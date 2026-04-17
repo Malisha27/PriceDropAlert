@@ -1,52 +1,37 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Register | Price Drop Alert</title>
-  <link rel="stylesheet" href="{{ url_for('static', filename='css/signInUp.css') }}" />
-  <script src="{{ url_for('static', filename='js/validate.js') }}"></script>
+{% extends "base.html" %}
 
-</head>
-<body class="main-body">
-  <div class="wrapper">
-    
-    <!-- Left Section -->
-    <div class="left-section">
-      <h1 class="heading">Price Drop Alert</h1>
-      <p class="subheading">Track the Drop,<br/>Shop Nonstop!</p>
-    </div>
+{% block title %}Register{% endblock %}
 
-    <!-- Right Section: Glass Registration Form -->
-    <div class="right-section">
-      <div class="glass-card">
-        <h2 class="login-title">Register</h2>
-        <form action="/signUp" method="POST">
-          <div class="input-field">
-            <input type="text" name="name" required />
-            <label>Enter your name</label>
-          </div>
-          <div class="input-field">
-            <input type="email" name="email" required />
-            <label>Enter your email</label>
-          </div>
-          <div class="input-field">
-            <input type="password" name="password" required />
-            <label>Create password</label>
-          </div>
-          <div class="input-field">
-            <input type="password" name="confirm_password" required />
-            <label>Confirm password</label>
-          </div>
-          <button type="submit">Sign Up</button>
+{% block content %}
+<div class="center-wrapper">
+    <div class="glass-panel" style="width: 100%; max-width: 450px;">
+        <form method="POST" action="/signUp">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+            <h2 style="margin-bottom: 2rem; text-align: center;">Join PriceDropAlert</h2>
+
+            <div class="input-group">
+                <input type="text" name="name" required placeholder="Full Name" class="input-field" />
+            </div>
+
+            <div class="input-group">
+                <input type="email" name="email" required placeholder="Email Address" class="input-field" />
+            </div>
+
+            <div class="input-group">
+                <input type="password" name="password" required placeholder="Create Password" class="input-field" />
+                <small style="color: var(--text-secondary); display: block; margin-top: 0.5rem; font-size: 0.75rem; line-height: 1.4;">Must be highly secure (8+ chars, uppercase, lowercase, number, special char).</small>
+            </div>
+
+            <div class="input-group">
+                <input type="password" name="confirm_password" required placeholder="Confirm Password" class="input-field" />
+            </div>
+
+            <button type="submit" class="btn" style="width: 100%; margin-bottom: 1.5rem; padding: 1rem;">Create Account</button>
+
+            <p style="text-align: center; color: var(--text-secondary); font-size: 0.95rem;">
+                Already have an account? <a href="/signIn" style="color: var(--accent-light); font-weight: 600; text-decoration: none;">Log In</a>
+            </p>
         </form>
-
-        <div class="register">
-          <p>Already have an account? <a href="/signIn">Login</a></p>
-        </div>
-      </div>
     </div>
-
-  </div>
-</body>
-</html>
+</div>
+{% endblock %}

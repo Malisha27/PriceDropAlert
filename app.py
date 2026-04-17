@@ -10,15 +10,36 @@ import smtplib
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 import re
+import os
+from dotenv import load_dotenv
+from flask_wtf.csrf import CSRFProtect
+from flask_limiter import Limiter
+from flask_limiter.util import get_remote_address
+from flask_apscheduler import APScheduler
+
+load_dotenv()
 
 app = Flask(__name__)
+app.config['SCHEDULER_API_ENABLED'] = True
+
+scheduler = APScheduler()
+scheduler.init_app(app)
+scheduler.start()
+
+csrf = CSRFProtect(app)
+limiter = Limiter(
+    get_remote_address,
+    app=app,
+    default_limits=["200 per day", "50 per hour"],
+    storage_uri="memory://"
+)
 
 login_manager = LoginManager()
 login_manager.init_app(app)
 login_manager.login_view = 'signIn'  # Redirects to this page if @login_required is used
 
 
-app.secret_key = 'your_secret_key'
+app.secret_key = os.environ.get('SECRET_KEY', 'default_secret_for_dev_ONLY')
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///users.db'
 db = SQLAlchemy(app)
 
@@ -65,7 +86,7 @@ def load_user(user_id):
 def send_mail(to_email, product_title, product_url, target_price):
     try:
         sender_email = '27demonstration@gmail.com'
-        sender_password = 'laqs gmba zzyw ktyt'  # ⚠️ Use environment variable in production
+        sender_password = os.environ.get('EMAIL_PASSWORD')  # ⚠️ Uses environment variable
 
         # Set up the MIME
         message = MIMEMultipart()
@@ -93,6 +114,7 @@ def design():
     return render_template('design.html')
 
 @app.route('/signIn', methods=['GET', 'POST'])
+@limiter.limit("5 per minute")
 def signIn():
     if current_user.is_authenticated:
         return redirect(url_for('home'))
@@ -113,6 +135,7 @@ def signIn():
     return render_template('signIn.html')
 
 @app.route('/signUp', methods=['GET', 'POST'])
+@limiter.limit("5 per minute")
 def signUp():
     if request.method == 'POST':
         name = request.form['name'].strip()
@@ -129,8 +152,8 @@ def signUp():
             flash('Passwords do not match.')
             return redirect(url_for('signUp'))
 
-        if len(password) < 6:
-            flash('Password must be at least 6 characters.')
+        if not re.match(r'^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$', password):
+            flash('Password must be at least 8 characters long and contain at least one uppercase letter, one lowercase letter, one digit, and one special character.')
             return redirect(url_for('signUp'))
 
         existing_user = User.query.filter_by(email=email).first()
@@ -155,6 +178,11 @@ def home():
 
         if not product_url:
             flash("Please enter a product URL.")
+            return redirect(url_for('home'))
+        
+        allowed_domains = ['amazon.', 'flipkart.com', 'nykaa.com', 'boat-lifestyle']
+        if not any(domain in product_url for domain in allowed_domains):
+            flash("Unsupported URL. Please enter a valid product URL from supported domains.")
             return redirect(url_for('home'))
         
         # 🔍 Check if the same product already exists for this user
@@ -191,7 +219,7 @@ def track_product(product_id):
     URL = product.url
     headers =  {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/127.0.0.0 Safari/537.36 OPR/113.0.0.0"}
    
-    SCRAPERAPI_KEY = 'd147aa3553b782e49185ddea6c5f41ee'  # 🔑 Replace with your actual key
+    SCRAPERAPI_KEY = os.environ.get('SCRAPERAPI_KEY')
     api_url = f'http://api.scraperapi.com/?api_key={SCRAPERAPI_KEY}&url={URL}'
     response = requests.get(api_url, headers=headers, timeout=30)
     soup1 = BeautifulSoup(response.content, "html.parser")
@@ -411,8 +439,8 @@ def myProfile():
             flash("New passwords do not match.")
             return redirect(url_for('myProfile'))
 
-        if len(new_password) < 6:
-            flash("Password must be at least 6 characters.")
+        if not re.match(r'^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$', new_password):
+            flash("Password must be at least 8 characters long and contain at least one uppercase letter, one lowercase letter, one digit, and one special character.")
             return redirect(url_for('myProfile'))
 
         current_user.password = generate_password_hash(new_password)
@@ -421,6 +449,21 @@ def myProfile():
         return redirect(url_for('myProfile'))
 
     return render_template("myProfile.html")
+
+@app.route('/logout')
+@login_required
+def logout():
+    logout_user()
+    flash('You have been logged out.', 'success')
+    return redirect(url_for('signIn'))
+
+# Schedule price checks every 12 hours
+@scheduler.task('interval', id='price_check_job', hours=12)
+def scheduled_job():
+    with app.app_context():
+        from price_checker import update_prices_and_notify
+        print("Running scheduled price check...")
+        update_prices_and_notify()
 
 if __name__ == '__main__':
     with app.app_context():

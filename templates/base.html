@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}PriceDropAlert{% endblock %}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    {% block head %}{% endblock %}
+</head>
+<body>
+
+    <!-- 🔝 Navbar -->
+    <nav class="navbar">
+        <a href="/" class="navbar-brand">PriceDropAlert</a>
+        <ul class="nav-links">
+            {% if current_user.is_authenticated %}
+                <li><a href="{{ url_for('home') }}">Track</a></li>
+                <li><a href="{{ url_for('watchlist') }}">Watchlist</a></li>
+                <li><a href="{{ url_for('myProfile') }}">Profile</a></li>
+                <li><a href="{{ url_for('logout') }}">Logout</a></li>
+            {% else %}
+                <li><a href="{{ url_for('signIn') }}">Login</a></li>
+                <li><a href="{{ url_for('signUp') }}">Register</a></li>
+            {% endif %}
+        </ul>
+    </nav>
+
+    <!-- Flash Messages Handler -->
+    <div class="container" style="padding-bottom: 0;">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="alert {{ 'alert-success' if category == 'success' else 'alert-error' }}">
+                        {{ message }}
+                    </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+    </div>
+
+    <!-- 🔽 Content area -->
+    <div class="content container">
+        {% block content %}
+        {% endblock %}
+    </div>
+
+    {% block scripts %}{% endblock %}
+</body>
+</html>
