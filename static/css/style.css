@@ -20,6 +20,13 @@
   margin: 0;
   padding: 0;
   font-family: 'Inter', sans-serif;
+  -ms-overflow-style: none; /* IE and Edge */
+  scrollbar-width: none; /* Firefox */
+}
+
+/* Visually hide Webkit scrollbars everywhere to meet user requirement */
+::-webkit-scrollbar {
+  display: none;
 }
 
 body {
@@ -136,7 +143,7 @@ h1, h2, h3 { font-family: 'Outfit', sans-serif; font-weight: 700; letter-spacing
   border: 1px solid var(--glass-border);
   backdrop-filter: blur(16px);
   border-radius: 16px;
-  padding: 2.5rem;
+  padding: 2rem;
   box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
 }
 

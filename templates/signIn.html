@@ -4,34 +4,43 @@
 
 {% block content %}
 <div class="center-wrapper">
-    <div style="display: flex; gap: 4rem; align-items: center; justify-content: center; width: 100%; max-width: 1000px; flex-wrap: wrap;">
-        
-        <div style="flex: 1; min-width: 300px; text-align: center;">
-            <p style="font-family: 'Outfit'; font-weight: bold; font-size: 4rem; margin-bottom: 0.5rem; background: -webkit-linear-gradient(#fff, #a78bfa); -webkit-background-clip: text; -webkit-text-fill-color: transparent; white-space:nowrap;">PriceDropAlert</p>
-            <p style="font-size: 1.2rem; color: var(--text-secondary); margin-bottom: 1.5rem;">Track the drop. Shop nonstop.</p>
+    <div
+        style="display: flex; gap: 2rem; align-items: center; justify-content: center; width: 100%; max-width: 1000px; flex-wrap: wrap;">
+
+        <div style="flex: 1; min-width: 250px; text-align: center; padding: 1rem;">
+            <p
+                style="font-family: 'Outfit'; font-weight: bold; font-size: clamp(1.8rem, 8vw, 3.5rem); margin-bottom: 0.5rem; background: -webkit-linear-gradient(#fff, #a78bfa); -webkit-background-clip: text; -webkit-text-fill-color: transparent; white-space: nowrap;">
+                PriceDropAlert</p>
+            <p style="font-size: 1.2rem; color: var(--text-secondary); margin-bottom: 1.5rem;">Track the drop. Shop
+                nonstop.</p>
         </div>
 
         <div class="glass-panel" style="flex: 1; min-width: 350px;">
             <form method="POST" action="/signIn">
-                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
                 <h2 style="margin-bottom: 2rem;">Welcome Back</h2>
 
                 <div class="input-group">
-                    <input type="email" name="email" id="email" required placeholder="Email Address" class="input-field" />
+                    <input type="email" name="email" id="email" required placeholder="Email Address"
+                        class="input-field" />
                 </div>
 
                 <div class="input-group">
-                    <input type="password" name="password" id="password" required placeholder="Password" class="input-field" />
+                    <input type="password" name="password" id="password" required placeholder="Password"
+                        class="input-field" />
                 </div>
 
                 <div style="display: flex; justify-content: space-between; margin-bottom: 2rem; font-size: 0.9rem;">
-                    <label style="color: var(--text-secondary);"><input type="checkbox" style="margin-right: 0.5rem;" /> Remember me</label>
+                    <label style="color: var(--text-secondary);"><input type="checkbox" style="margin-right: 0.5rem;" />
+                        Remember me</label>
                 </div>
 
-                <button type="submit" class="btn" style="width: 100%; margin-bottom: 1.5rem; padding: 1rem;">Log In</button>
+                <button type="submit" class="btn" style="width: 100%; margin-bottom: 1.5rem; padding: 1rem;">Log
+                    In</button>
 
                 <p style="text-align: center; color: var(--text-secondary); font-size: 0.95rem;">
-                    Don’t have an account? <a href="/signUp" style="color: var(--accent-light); font-weight: 600; text-decoration: none;">Register</a>
+                    Don’t have an account? <a href="/signUp"
+                        style="color: var(--accent-light); font-weight: 600; text-decoration: none;">Register</a>
                 </p>
             </form>
         </div>

@@ -145,27 +145,27 @@ def signUp():
 
         # Server-side checks
         if not name or not email or not password or not confirm_password:
-            flash('All fields are required.')
+            flash('All fields are required.', 'error')
             return redirect(url_for('signUp'))
 
         if password != confirm_password:
-            flash('Passwords do not match.')
+            flash('Passwords do not match.', 'error')
             return redirect(url_for('signUp'))
 
         if not re.match(r'^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$', password):
-            flash('Password must be at least 8 characters long and contain at least one uppercase letter, one lowercase letter, one digit, and one special character.')
+            flash('Password must be at least 8 characters long and contain at least one uppercase letter, one lowercase letter, one digit, and one special character.', 'error')
             return redirect(url_for('signUp'))
 
         existing_user = User.query.filter_by(email=email).first()
         if existing_user:
-            flash('Email already registered.')
+            flash('Email already registered.', 'error')
             return redirect(url_for('signIn'))
 
         hashed_password = generate_password_hash(password)
         new_user = User(name=name, email=email, password=hashed_password)
         db.session.add(new_user)
         db.session.commit()
-        flash('Registration successful! Please log in.')
+        flash('Email has been registered, please try to login.', 'success')
         return redirect(url_for('signIn'))
 
     return render_template('signUp.html')
@@ -177,19 +177,19 @@ def home():
         product_url = request.form['product_url'].strip()
 
         if not product_url:
-            flash("Please enter a product URL.")
+            flash("Please enter a product URL.", "error")
             return redirect(url_for('home'))
         
-        allowed_domains = ['amazon.', 'flipkart.com', 'nykaa.com', 'boat-lifestyle']
+        allowed_domains = ['amazon.', 'amzn.', 'flipkart.com', 'nykaa.com', 'boat-lifestyle']
         if not any(domain in product_url for domain in allowed_domains):
-            flash("Unsupported URL. Please enter a valid product URL from supported domains.")
+            flash("Unsupported URL. Please enter a valid product URL from supported domains.", "error")
             return redirect(url_for('home'))
         
         # 🔍 Check if the same product already exists for this user
         existing_product = TrackedProduct.query.filter_by(url=product_url, user_id=current_user.id).first()
 
         if existing_product:
-            flash("Product already exists. Redirecting to track page.")
+            flash("Product already exists. Redirecting to track page.", "success")
             return redirect(url_for('track_product', product_id=existing_product.id))
 
         # ✅ If not found, create a new product entry
@@ -200,7 +200,7 @@ def home():
         )
         db.session.add(new_product)
         db.session.commit()
-        flash("Product URL saved successfully.")
+        flash("Product URL saved successfully.", "success")
         return redirect(url_for('track_product', product_id=new_product.id))
 
     return render_template('home.html')
@@ -213,22 +213,31 @@ def track_product(product_id):
 
     # Ensure product belongs to the current user
     if product.user_id != current_user.id:
-        flash("Unauthorized access.")
+        flash("Unauthorized access.", "error")
         return redirect(url_for('home'))
     
     URL = product.url
-    headers =  {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/127.0.0.0 Safari/537.36 OPR/113.0.0.0"}
-   
+    import urllib.parse
+    safe_url = urllib.parse.quote(URL)
     SCRAPERAPI_KEY = os.environ.get('SCRAPERAPI_KEY')
-    api_url = f'http://api.scraperapi.com/?api_key={SCRAPERAPI_KEY}&url={URL}'
-    response = requests.get(api_url, headers=headers, timeout=30)
-    soup1 = BeautifulSoup(response.content, "html.parser")
-    soup2 = BeautifulSoup(soup1.prettify(), "html.parser")
+    api_url = f'http://api.scraperapi.com/?api_key={SCRAPERAPI_KEY}&url={safe_url}'
+
+    try:
+        response = requests.get(api_url, timeout=30)
+        if response.status_code == 200:
+            soup2 = BeautifulSoup(response.content, "html.parser")
+        else:
+            raise Exception("ScraperAPI Error")
+    except:
+        # Fallback to direct request if ScraperAPI is exhausted/unavailable
+        headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/127.0.0.0 Safari/537.36"}
+        fallback_resp = requests.get(URL, headers=headers, timeout=30, allow_redirects=True)
+        soup2 = BeautifulSoup(fallback_resp.content, "html.parser")
 
     # Step 1: Identify website
     if "flipkart.com" in URL:
         platform = "flipkart"
-    elif "amazon." in URL:
+    elif "amazon." in URL or "amzn." in URL:
         platform = "amazon"
     elif "nykaa.com" in URL:
         platform = "nykaa"
@@ -240,16 +249,13 @@ def track_product(product_id):
     try:
         if platform == "boat":
     #BOAT
-            product_title = soup2.find('h1', class_='product-meta__title heading h3').get_text(strip=True)
-            current_price = soup2.find('span', class_='mobile_atc_price').get_text(strip=True) 
-            current_price = current_price.strip()[1:]
-        
-            image_wrapper = soup2.find('div', class_='product__media-image-wrapper aspect-ratio aspect-ratio--natural')
-            if image_wrapper:
-                image_tag = image_wrapper.find('img', alt=lambda val: val and 'boAt' in val)
-            else:
-                image_tag = None
-            if image_tag:
+            product_title_tag = soup2.find('h1', class_='product-meta__title')
+            product_title = product_title_tag.get_text(strip=True) if product_title_tag else "boAt Product"
+            price_tag = soup2.find('span', class_='mobile_atc_price')
+            current_price = price_tag.get_text(strip=True).strip()[1:] if price_tag else "0"
+            image_wrapper = soup2.find('div', class_='product__media-image-wrapper')
+            image_tag = image_wrapper.find('img') if image_wrapper else None
+            if image_tag and 'src' in image_tag.attrs:
                 raw_src = image_tag['src']
                 product_image = "https:" + raw_src if raw_src.startswith("//") else raw_src
             else:
@@ -257,16 +263,14 @@ def track_product(product_id):
 
         elif platform == "nykaa":
         # NYKAA
-            product_title = soup2.find('h1', class_='css-1gc4x7i').get_text(strip=True)
-            current_price = soup2.find('span', class_='css-1jczs19').get_text(strip=True) 
-            current_price = current_price.strip()[1:]
+            product_title_tag = soup2.find('h1', class_='css-1gc4x7i')
+            product_title = product_title_tag.get_text(strip=True) if product_title_tag else "Nykaa Product"
+            price_tag = soup2.find('span', class_='css-1jczs19')
+            current_price = price_tag.get_text(strip=True).strip()[1:] if price_tag else "0"
 
-            image_wrapper = soup2.find('div', class_='productSelectedImage css-eyk94w')
-            if image_wrapper:
-                image_tag = image_wrapper.find('img', alt=lambda val: val and 'product' in val)
-            else:
-                image_tag = None
-            if image_tag:
+            image_wrapper = soup2.find('div', class_='productSelectedImage')
+            image_tag = image_wrapper.find('img') if image_wrapper else None
+            if image_tag and 'src' in image_tag.attrs:
                 raw_src = image_tag['src']
                 product_image = "https:" + raw_src if raw_src.startswith("//") else raw_src
             else:
@@ -274,36 +278,35 @@ def track_product(product_id):
 
         elif platform == "amazon":
         # AMAZON
-            product_title = soup2.find('h1', class_='a-size-large a-spacing-none').get_text(strip=True)
-            whole = soup2.find('span', class_='a-price-whole').get_text(strip=True)
-            fraction = soup2.find('span', class_='a-price-fraction').get_text(strip=True)
-            current_price = clean_price(f"{whole}.{fraction}")
-
-            image_wrapper = soup2.find('div', class_='imgTagWrapper')
-            if image_wrapper:
-                image_tag = image_wrapper.find('img', class_=lambda x: x and 'a-dynamic-image' in x and 'a-stretch-vertical' in x)
+            title_tag = soup2.find(id='productTitle')
+            product_title = title_tag.get_text(strip=True) if title_tag else "Amazon Product"
+            
+            price_whole = soup2.find('span', class_='a-price-whole')
+            if price_whole:
+                whole = price_whole.get_text(strip=True).replace('.', '')
+                fraction_tag = soup2.find('span', class_='a-price-fraction')
+                fraction = fraction_tag.get_text(strip=True) if fraction_tag else "00"
+                current_price = clean_price(f"{whole}.{fraction}")
             else:
-                image_tag = None
-            if image_tag:
-                raw_src = image_tag['src']
-                product_image = "https:" + raw_src if raw_src.startswith("//") else raw_src
+                current_price = "0"
+
+            img_tag = soup2.find('img', id='landingImage')
+            if img_tag and 'src' in img_tag.attrs:
+                product_image = img_tag['src']
             else:
                 product_image = "https://upload.wikimedia.org/wikipedia/commons/a/a3/Image-not-found.png"
 
         elif platform == "flipkart":
         # FLIPKART
-            product_title = soup2.select_one('h1._6EBuvT span').get_text(strip=True)
-            current_price = soup2.find('div', class_='Nx9bqj CxhGGd').get_text(strip=True)
-            current_price = current_price.strip()[1:]
+            title_tag = soup2.select_one('h1._6EBuvT span')
+            product_title = title_tag.get_text(strip=True) if title_tag else "Flipkart Product"
+            price_tag = soup2.find('div', class_='Nx9bqj CxhGGd')
+            current_price = price_tag.get_text(strip=True).strip()[1:] if price_tag else "0"
 
-            image_wrapper = soup2.find('div', class_='_4WELSP _6lpKCl')
-            if image_wrapper:
-                image_tag = image_wrapper.find('img', class_=lambda x: x and 'DByuf4' in x and ' IZexXJ' in x and 'jLEJ7H' in x)
-            else:
-                image_tag = None
-            if image_tag:
-                raw_src = image_tag['src']
-                product_image = "https:" + raw_src if raw_src.startswith("//") else raw_src
+            image_wrapper = soup2.find('div', class_='_4WELSP')
+            image_tag = image_wrapper.find('img') if image_wrapper else None
+            if image_tag and 'src' in image_tag.attrs:
+                product_image = image_tag['src']
             else:
                 product_image = "https://upload.wikimedia.org/wikipedia/commons/a/a3/Image-not-found.png"
 
@@ -312,7 +315,8 @@ def track_product(product_id):
             current_price = "N/A"
             product_image  = "https://upload.wikimedia.org/wikipedia/commons/a/a3/Image-not-found.png"
 
-    except AttributeError:
+    except Exception as e:
+        print("Scrape Parsing Error:", e)
         product_title = "Unavailable"
         current_price = "N/A"
         product_image = "https://upload.wikimedia.org/wikipedia/commons/a/a3/Image-not-found.png"
@@ -363,7 +367,7 @@ def track_product(product_id):
             db.session.add(new_entry)
 
         db.session.commit()
-        flash('Target price updated successfully!')
+        flash("Target price updated successfully!", "success")
         return redirect(url_for('watchlist'))
     
 
@@ -432,20 +436,20 @@ def myProfile():
         confirm_password = request.form['confirm_password']
 
         if not check_password_hash(current_user.password, old_password):
-            flash("Incorrect current password.")
+            flash("Incorrect current password.", "error")
             return redirect(url_for('myProfile'))
 
         if new_password != confirm_password:
-            flash("New passwords do not match.")
+            flash("New passwords do not match.", "error")
             return redirect(url_for('myProfile'))
 
         if not re.match(r'^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$', new_password):
-            flash("Password must be at least 8 characters long and contain at least one uppercase letter, one lowercase letter, one digit, and one special character.")
+            flash("Password must be at least 8 characters long and contain at least one uppercase letter, one lowercase letter, one digit, and one special character.", "error")
             return redirect(url_for('myProfile'))
 
         current_user.password = generate_password_hash(new_password)
         db.session.commit()
-        flash("Password updated successfully.")
+        flash("Password updated successfully.", "success")
         return redirect(url_for('myProfile'))
 
     return render_template("myProfile.html")

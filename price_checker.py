@@ -111,35 +111,51 @@ def clean_price(price_str):
 
 def fetch_current_price(product_url):
     SCRAPERAPI_KEY = os.environ.get('SCRAPERAPI_KEY')
-    headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"}
-    api_url = f'http://api.scraperapi.com/?api_key={SCRAPERAPI_KEY}&url={product_url}'
-    response = requests.get(api_url, headers=headers, timeout=30)
-    soup1 = BeautifulSoup(response.content, "html.parser")
-    soup2 = BeautifulSoup(soup1.prettify(), "html.parser")
+    import urllib.parse
+    safe_url = urllib.parse.quote(product_url)
+    api_url = f'http://api.scraperapi.com/?api_key={SCRAPERAPI_KEY}&url={safe_url}'
+    
+    try:
+        response = requests.get(api_url, timeout=30)
+        if response.status_code == 200:
+            soup2 = BeautifulSoup(response.content, "html.parser")
+        else:
+            raise Exception("ScraperAPI Error")
+    except:
+        headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"}
+        fallback_resp = requests.get(product_url, headers=headers, timeout=30, allow_redirects=True)
+        soup2 = BeautifulSoup(fallback_resp.content, "html.parser")
 
     if "flipkart.com" in product_url:
         try:
-            current_price = soup2.find('div', class_='Nx9bqj CxhGGd').get_text(strip=True).strip()[1:]
-            return float(current_price)
+            price_tag = soup2.find('div', class_='Nx9bqj CxhGGd')
+            current_price = price_tag.get_text(strip=True).strip()[1:] if price_tag else None
+            return float(current_price) if current_price else None
         except:
             return None
-    elif "amazon." in product_url:
+    elif "amazon." in product_url or "amzn." in product_url:
         try:
-            whole = soup2.find('span', class_='a-price-whole').get_text(strip=True)
-            fraction = soup2.find('span', class_='a-price-fraction').get_text(strip=True)
-            return clean_price(f"{whole}.{fraction}")
+            price_whole = soup2.find('span', class_='a-price-whole')
+            if price_whole:
+                whole = price_whole.get_text(strip=True).replace('.', '')
+                fraction_tag = soup2.find('span', class_='a-price-fraction')
+                fraction = fraction_tag.get_text(strip=True) if fraction_tag else "00"
+                return clean_price(f"{whole}.{fraction}")
+            return None
         except:
             return None
     elif "nykaa.com" in product_url:
         try:
-            current_price = soup2.find('span', class_='css-1jczs19').get_text(strip=True).strip()[1:]
-            return float(current_price)
+            price_tag = soup2.find('span', class_='css-1jczs19')
+            current_price = price_tag.get_text(strip=True).strip()[1:] if price_tag else None
+            return float(current_price) if current_price else None
         except:
             return None
     elif "boat-lifestyle" in product_url:
         try:
-            current_price = soup2.find('span', class_='mobile_atc_price').get_text(strip=True).strip()[1:]
-            return float(current_price)
+            price_tag = soup2.find('span', class_='mobile_atc_price')
+            current_price = price_tag.get_text(strip=True).strip()[1:] if price_tag else None
+            return float(current_price) if current_price else None
         except:
             return None
     else:
