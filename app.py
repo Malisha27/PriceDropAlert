@@ -3,13 +3,14 @@ from flask import Flask, render_template, request, redirect, url_for, flash
 from flask_sqlalchemy import SQLAlchemy
 from werkzeug.security import generate_password_hash, check_password_hash
 from flask_login import LoginManager, login_user, login_required, logout_user, current_user, UserMixin
-from threading import Thread
+from sqlalchemy import func
 from bs4 import BeautifulSoup
 import requests
 import smtplib
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 import re
+import json
 import os
 from dotenv import load_dotenv
 from flask_wtf.csrf import CSRFProtect
@@ -281,8 +282,6 @@ def track_product(product_id):
         elif platform == "myntra":
         # MYNTRA — serves full SSR HTML with JSON-LD Product schema to Chrome UA
         # Primary: JSON-LD → Fallback: OG title + image
-            import json as _json
-
             product_title = None
             current_price = None
             product_image = None
@@ -290,7 +289,7 @@ def track_product(product_id):
             # ── Strategy 1: JSON-LD Product schema (most reliable) ────────────
             for ld_tag in soup2.find_all('script', type='application/ld+json'):
                 try:
-                    ld = _json.loads(ld_tag.string or '')
+                    ld = json.loads(ld_tag.string or '')
                     items = ld if isinstance(ld, list) else [ld]
                     for item in items:
                         if item.get('@type') == 'Product':
@@ -355,7 +354,6 @@ def track_product(product_id):
 
         elif platform == "flipkart":
         # FLIPKART — parsed via OG meta tags + regex (Googlebot gets SEO markup, not desktop React)
-            import re
 
             # Title: og:title is long ("Buy XYZ | Flipkart.com"), so trim at first " - "
             title_tag = soup2.find('meta', property='og:title')
@@ -423,7 +421,6 @@ def track_product(product_id):
             history.pop(0)
 
         # Add today's price (avoid duplicate on same date)
-        from sqlalchemy import func
         today = datetime.utcnow().date()
         existing_today = PriceHistory.query.filter(
             PriceHistory.product_id == product.id,

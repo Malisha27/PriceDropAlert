@@ -1,6 +1,5 @@
 beautifulsoup4
 requests
-pandas
 flask
 flask_sqlalchemy
 flask-login
