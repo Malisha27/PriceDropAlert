@@ -113,24 +113,58 @@ def fetch_current_price(product_url):
     SCRAPERAPI_KEY = os.environ.get('SCRAPERAPI_KEY')
     import urllib.parse
     safe_url = urllib.parse.quote(product_url)
-    api_url = f'http://api.scraperapi.com/?api_key={SCRAPERAPI_KEY}&url={safe_url}'
-    
-    try:
-        response = requests.get(api_url, timeout=30)
-        if response.status_code == 200:
-            soup2 = BeautifulSoup(response.content, "html.parser")
-        else:
-            raise Exception("ScraperAPI Error")
-    except:
-        headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"}
-        fallback_resp = requests.get(product_url, headers=headers, timeout=30, allow_redirects=True)
-        soup2 = BeautifulSoup(fallback_resp.content, "html.parser")
+    GOOGLEBOT_UA = "Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)"
+    CHROME_UA = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36"
+
+    # Myntra: returns full HTML with JSON-LD to Chrome UA — no proxy needed
+    if "myntra.com" in product_url:
+        try:
+            myntra_headers = {
+                "User-Agent": CHROME_UA,
+                "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+                "Accept-Language": "en-US,en;q=0.9",
+                "Referer": "https://www.google.com/",
+            }
+            resp = requests.get(product_url, headers=myntra_headers, timeout=20, allow_redirects=True)
+            if resp.status_code != 200:
+                print(f"[Myntra] HTTP {resp.status_code}")
+                return None
+            soup2 = BeautifulSoup(resp.content, "html.parser")
+        except Exception as e:
+            print(f"[Myntra] Request failed: {e}")
+            return None
+    elif "flipkart.com" in product_url:
+        try:
+            bot_resp = requests.get(product_url, headers={"User-Agent": GOOGLEBOT_UA}, timeout=30, allow_redirects=True)
+            soup2 = BeautifulSoup(bot_resp.content, "html.parser")
+        except Exception as e:
+            print(f"[Flipkart] Request failed: {e}")
+            return None
+    else:
+        api_url = f'http://api.scraperapi.com/?api_key={SCRAPERAPI_KEY}&url={safe_url}'
+        try:
+            response = requests.get(api_url, timeout=30)
+            if response.status_code == 200:
+                soup2 = BeautifulSoup(response.content, "html.parser")
+            else:
+                raise Exception("ScraperAPI Error")
+        except:
+            headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"}
+            fallback_resp = requests.get(product_url, headers=headers, timeout=30, allow_redirects=True)
+            soup2 = BeautifulSoup(fallback_resp.content, "html.parser")
 
     if "flipkart.com" in product_url:
         try:
-            price_tag = soup2.find('div', class_='Nx9bqj CxhGGd')
-            current_price = price_tag.get_text(strip=True).strip()[1:] if price_tag else None
-            return float(current_price) if current_price else None
+            import re
+            prices = []
+            for el in soup2.find_all(string=re.compile(r'\u20B9')):
+                text = el.strip().replace('\u20B9', '').strip()
+                if text and len(text) < 12:
+                    try:
+                        prices.append(clean_price(text))
+                    except Exception:
+                        pass
+            return float(prices[0]) if prices else None
         except:
             return None
     elif "amazon." in product_url or "amzn." in product_url:
@@ -144,11 +178,25 @@ def fetch_current_price(product_url):
             return None
         except:
             return None
-    elif "nykaa.com" in product_url:
+    elif "myntra.com" in product_url:
+        import json
         try:
-            price_tag = soup2.find('span', class_='css-1jczs19')
-            current_price = price_tag.get_text(strip=True).strip()[1:] if price_tag else None
-            return float(current_price) if current_price else None
+            # Strategy 1: JSON-LD Product schema
+            for ld_tag in soup2.find_all('script', type='application/ld+json'):
+                try:
+                    ld = json.loads(ld_tag.string or '')
+                    items = ld if isinstance(ld, list) else [ld]
+                    for item in items:
+                        if item.get('@type') == 'Product':
+                            offers = item.get('offers', {})
+                            if isinstance(offers, list):
+                                offers = offers[0]
+                            price_val = offers.get('price', '') if offers else ''
+                            if price_val:
+                                return clean_price(str(price_val))
+                except Exception:
+                    pass
+            return None
         except:
             return None
     elif "boat-lifestyle" in product_url:

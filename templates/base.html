@@ -14,19 +14,19 @@
         <a href="/" class="navbar-brand">PriceDropAlert</a>
         <ul class="nav-links">
             {% if current_user.is_authenticated %}
-                <li><a href="{{ url_for('home') }}">Track</a></li>
-                <li><a href="{{ url_for('watchlist') }}">Watchlist</a></li>
-                <li><a href="{{ url_for('myProfile') }}">Profile</a></li>
+                <li><a href="{{ url_for('home') }}" class="{{ 'active' if request.endpoint == 'home' else '' }}">Track</a></li>
+                <li><a href="{{ url_for('watchlist') }}" class="{{ 'active' if request.endpoint == 'watchlist' else '' }}">Watchlist</a></li>
+                <li><a href="{{ url_for('myProfile') }}" class="{{ 'active' if request.endpoint == 'myProfile' else '' }}">Profile</a></li>
                 <li><a href="{{ url_for('logout') }}">Logout</a></li>
             {% else %}
-                <li><a href="{{ url_for('signIn') }}">Login</a></li>
-                <li><a href="{{ url_for('signUp') }}">Register</a></li>
+                <li><a href="{{ url_for('signIn') }}" class="{{ 'active' if request.endpoint == 'signIn' else '' }}">Login</a></li>
+                <li><a href="{{ url_for('signUp') }}" class="{{ 'active' if request.endpoint == 'signUp' else '' }}">Register</a></li>
             {% endif %}
         </ul>
     </nav>
 
     <!-- Flash Messages Handler -->
-    <div class="container" style="padding-bottom: 0;">
+    <div class="container" style="padding: 0 2rem;">
         {% with messages = get_flashed_messages(with_categories=true) %}
             {% if messages %}
                 {% for category, message in messages %}
@@ -39,11 +39,143 @@
     </div>
 
     <!-- 🔽 Content area -->
-    <div class="content container">
+    <div class="content container {% block content_class %}{% endblock %}">
         {% block content %}
         {% endblock %}
     </div>
 
     {% block scripts %}{% endblock %}
+
+    <!-- ════════════════════════════════════════════════
+         💬 Feedback Widget — visible on every page
+         Only rendered for logged-in users
+         ════════════════════════════════════════════════ -->
+    {% if current_user.is_authenticated %}
+    <meta name="csrf-token" content="{{ csrf_token() }}">
+
+    <!-- Floating Action Button -->
+    <div class="feedback-fab-wrapper" id="feedback-fab-wrapper">
+        <span class="feedback-tooltip">Send Feedback</span>
+        <button class="feedback-fab" id="feedback-fab-btn"
+                aria-label="Send Feedback"
+                onclick="openFeedbackModal()">💬</button>
+    </div>
+
+    <!-- Feedback Modal Overlay -->
+    <div class="feedback-overlay" id="feedback-overlay" onclick="closeFeedbackModal()">
+        <div class="feedback-panel" onclick="event.stopPropagation()">
+
+            <!-- Close button -->
+            <button class="modal-close" onclick="closeFeedbackModal()" aria-label="Close feedback">✕</button>
+
+            <!-- Header -->
+            <div class="feedback-panel-header">
+                <span class="feedback-panel-icon">💬</span>
+                <span class="feedback-panel-title">Help &amp; Feedback</span>
+            </div>
+
+            <!-- Textarea -->
+            <textarea id="feedback-textarea"
+                      class="feedback-textarea"
+                      placeholder="Spotted an issue or have a suggestion? Tell us!"
+                      rows="5"
+                      maxlength="2000"></textarea>
+
+            <!-- Submit -->
+            <button class="feedback-submit-btn" id="feedback-submit-btn" onclick="submitFeedback()">
+                <span id="feedback-btn-text">Send Feedback</span>
+            </button>
+
+            <!-- Status message -->
+            <div class="feedback-status" id="feedback-status"></div>
+        </div>
+    </div>
+
+    <script>
+    (function () {
+        function openFeedbackModal() {
+            document.getElementById('feedback-overlay').classList.add('active');
+            // Reset every time it opens
+            document.getElementById('feedback-textarea').value = '';
+            document.getElementById('feedback-status').className = 'feedback-status';
+            document.getElementById('feedback-status').textContent = '';
+            document.getElementById('feedback-submit-btn').disabled = false;
+            document.getElementById('feedback-btn-text').textContent = 'Send Feedback';
+            setTimeout(() => document.getElementById('feedback-textarea').focus(), 300);
+        }
+
+        function closeFeedbackModal() {
+            document.getElementById('feedback-overlay').classList.remove('active');
+        }
+
+        async function submitFeedback() {
+            const textarea = document.getElementById('feedback-textarea');
+            const message  = textarea.value.trim();
+            const statusEl = document.getElementById('feedback-status');
+            const btn      = document.getElementById('feedback-submit-btn');
+            const btnText  = document.getElementById('feedback-btn-text');
+
+            if (!message) {
+                statusEl.className = 'feedback-status error';
+                statusEl.textContent = 'Please write something before submitting.';
+                return;
+            }
+
+            // Loading state
+            btn.disabled = true;
+            btnText.textContent = 'Sending…';
+            statusEl.className = 'feedback-status';
+            statusEl.textContent = '';
+
+            // CSRF token — may come from the base meta tag we injected,
+            // or from a page-level one (watchlist already has one).
+            const csrfMeta = document.querySelector('meta[name="csrf-token"]');
+            const csrfToken = csrfMeta ? csrfMeta.getAttribute('content') : '';
+
+            try {
+                const res = await fetch('/api/feedback', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': csrfToken
+                    },
+                    body: JSON.stringify({ message })
+                });
+
+                const data = await res.json();
+
+                if (res.ok && data.success) {
+                    statusEl.className = 'feedback-status success';
+                    statusEl.textContent = '✅ Feedback sent successfully! We\'ll get back to you soon.';
+                    textarea.value = '';
+                    // Auto-close after 2.5 s
+                    setTimeout(closeFeedbackModal, 2500);
+                } else {
+                    statusEl.className = 'feedback-status error';
+                    statusEl.textContent = data.error || '❌ Something went wrong. Please try again.';
+                    btn.disabled = false;
+                    btnText.textContent = 'Send Feedback';
+                }
+            } catch (err) {
+                statusEl.className = 'feedback-status error';
+                statusEl.textContent = '❌ Network error. Please check your connection.';
+                btn.disabled = false;
+                btnText.textContent = 'Send Feedback';
+            }
+        }
+
+        // Close on Escape key
+        document.addEventListener('keydown', function (e) {
+            if (e.key === 'Escape') closeFeedbackModal();
+        });
+
+        // Expose to global scope (onclick attributes)
+        window.openFeedbackModal  = openFeedbackModal;
+        window.closeFeedbackModal = closeFeedbackModal;
+        window.submitFeedback     = submitFeedback;
+    })();
+    </script>
+    {% endif %}
+
 </body>
 </html>

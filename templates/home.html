@@ -6,7 +6,7 @@
 <div class="center-wrapper">
     <div class="glass-panel" style="width: 100%; max-width: 600px; text-align: center;">
         <h2>Track A New Product</h2>
-        <p style="color: var(--text-secondary); margin-bottom: 2rem;">Paste an Amazon, Flipkart, Nykaa, or boAt URL below.</p>
+        <p style="color: var(--text-secondary); margin-bottom: 2rem;">Paste an Amazon, Flipkart, Myntra, or boAt URL below.</p>
         
         <form method="POST" action="/home">
             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
@@ -15,6 +15,16 @@
             </div>
             <button type="submit" class="btn" style="width: 100%">Fetch Product Info</button>
         </form>
+        <!-- Supported Stores Section -->
+        <div class="stores-section">
+            <h3 class="stores-title">Supported Stores</h3>
+            <div class="store-badges">
+                <div class="store-badge">Amazon</div>
+                <div class="store-badge">Flipkart</div>
+                <div class="store-badge">Myntra</div>
+                <div class="store-badge">boAt</div>
+            </div>
+        </div>
     </div>
 </div>
 {% endblock %}

@@ -2,44 +2,462 @@
 
 {% block title %}My Watchlist{% endblock %}
 
+{% block content_class %}scrollable{% endblock %}
+
+{% block head %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<meta name="csrf-token" content="{{ csrf_token() }}">
+{% endblock %}
+
 {% block content %}
-<div style="margin-bottom: 2rem;">
+<div style="margin-bottom: 1.5rem;">
     <h2>Your Tracked Products</h2>
     <p style="color: var(--text-secondary);">We are actively monitoring these prices for you.</p>
 </div>
 
+<!-- ── Watchlist Grid (original layout) ───────────────────── -->
 <div class="product-grid">
     {% for product in products %}
-    <div class="product-card">
+    <div class="product-card wl-card" id="product-{{ product.id }}"
+         onclick="openModal({{ product.id }})" style="cursor: pointer;">
         <div class="product-info">
-            <h3 class="product-title" title="{{ product.product_title }}">{{ product.product_title|default('Pending Title') }}</h3>
+            <h3 class="product-title" title="{{ product.product_title }}">
+                {{ product.product_title | default('Pending Title') }}
+            </h3>
             <div style="display: flex; justify-content: space-between; margin-bottom: 1.5rem; margin-top: 1rem;">
                 <div>
                     <p style="font-size: 0.8rem; color: var(--text-secondary);">Current Price</p>
-                    <p class="price-tag {{ 'status-green' if product.price_status == 'green' else 'status-red' }}">
-                        ₹{{ product.current_price|default('---') }}
+                    <p class="price-tag {{ 'status-green' if product.price_status == 'green' else 'status-red' }}" id="card-current-{{ product.id }}">
+                        ₹{{ product.current_price | default('---') }}
                     </p>
                 </div>
-                <div style="text-align: right;">
+
+                <!-- 👁 Display Mode -->
+                <div id="display-target-{{ product.id }}" style="text-align: right;">
                     <p style="font-size: 0.8rem; color: var(--text-secondary);">Alert Target</p>
-                    <p class="price-tag" style="color: white;">₹{{ product.target_price|default('---') }}</p>
+                    <p class="price-tag" style="color: var(--gold);" id="card-target-{{ product.id }}">₹{{ product.target_price | default('---') }}</p>
+                </div>
+                
+                <!-- ✏️ Edit Mode (Hidden by default) -->
+                <div id="edit-target-{{ product.id }}" style="display: none; text-align: right;" onclick="event.stopPropagation()">
+                    <p style="font-size: 0.8rem; color: var(--text-secondary); margin-bottom: 0.2rem;">Alert Target</p>
+                    <div style="display: flex; align-items: center; justify-content: flex-end; gap: 0.2rem;">
+                        <span style="color: var(--gold); font-size: 1.1rem; font-weight: 700;">₹</span>
+                        <input type="number" id="input-target-{{ product.id }}" class="input-field" 
+                               style="width: 80px; padding: 0.4rem; font-size: 1rem; border-color: var(--gold);" min="1" step="1">
+                    </div>
                 </div>
             </div>
-            
-            <div style="display: flex; gap: 1rem;">
-                <a href="{{ url_for('track_product', product_id=product.id) }}" class="btn" style="flex: 1; text-align: center; font-size: 0.9rem; padding: 0.6rem;">Edit Target</a>
-                <form method="POST" action="{{ url_for('delete_product', product_id=product.id) }}" onsubmit="return confirm('Are you sure you want to stop tracking this item?');" style="display: inline-block;">
+
+            <!-- Buttons -->
+            <div id="display-actions-{{ product.id }}" style="display: flex; gap: 1rem;" onclick="event.stopPropagation()">
+                <button type="button" onclick="enterEditMode({{ product.id }})"
+                        class="btn" style="flex: 1; text-align: center; font-size: 0.9rem; padding: 0.6rem;">
+                   Edit Target
+                </button>
+                <form method="POST" action="{{ url_for('delete_product', product_id=product.id) }}"
+                      onsubmit="return confirm('Are you sure you want to stop tracking this item?');"
+                      style="display: inline-block;">
                     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
                     <button type="submit" class="btn btn-delete" style="padding: 0.6rem 1rem;">Delete</button>
                 </form>
             </div>
+
+            <div id="edit-actions-{{ product.id }}" style="display: none; gap: 1rem;" onclick="event.stopPropagation()">
+                <button type="button" onclick="saveTarget({{ product.id }})" 
+                        class="btn" style="flex: 1; padding: 0.6rem; font-size: 0.9rem; background: var(--success); box-shadow: none;">Save</button>
+                <button type="button" onclick="cancelEdit({{ product.id }})" 
+                        class="btn btn-delete" style="flex: 1; padding: 0.6rem; font-size: 0.9rem;">Cancel</button>
+            </div>
         </div>
     </div>
     {% else %}
-    <div class="glass-panel" style="grid-column: 1 / -1; text-align: center;">
+    <div class="glass-panel" style="grid-column: 1 / -1; text-align: center; padding: 3rem 2rem;">
         <h3 style="margin-bottom: 1rem;">No products are being tracked yet.</h3>
         <a href="{{ url_for('home') }}" class="btn">Track a Product Now</a>
     </div>
     {% endfor %}
 </div>
+
+
+<!-- ══════════════════════════════════════════════════════════
+     MODAL OVERLAY — blurs background, pops product detail
+     ══════════════════════════════════════════════════════════ -->
+<div class="modal-overlay" id="modal-overlay" onclick="closeModal()">
+    <div class="modal-panel" onclick="event.stopPropagation()">
+
+        <!-- Close -->
+        <button class="modal-close" onclick="closeModal()">✕</button>
+
+        <!-- Product header -->
+        <div style="margin-bottom: 1.5rem; padding-right: 2.5rem;">
+            <h2 id="modal-title"
+                style="font-size: 1.1rem; line-height: 1.45; margin-bottom: 0.4rem;
+                       display: -webkit-box; -webkit-line-clamp: 2;
+                       -webkit-box-orient: vertical; overflow: hidden;"></h2>
+            <a id="modal-store-link" href="#" target="_blank"
+               style="color: var(--accent-glow); font-size: 0.85rem;">
+               View on Store ↗
+            </a>
+        </div>
+
+        <!-- Body: info left + chart right -->
+        <div style="display: flex; gap: 2rem; align-items: flex-start; flex-wrap: wrap;">
+
+            <!-- Left column – prices & actions -->
+            <div style="flex: 0 0 160px; min-width: 140px;">
+                <p style="color: var(--text-secondary); font-size: 0.75rem; margin-bottom: 0.2rem;">Current Price</p>
+                <p id="modal-current-price" class="price-tag" style="font-size: 1.8rem; margin-bottom: 1.25rem;"></p>
+
+                <p style="color: var(--text-secondary); font-size: 0.75rem; margin-bottom: 0.2rem;">Alert Target</p>
+                
+                <!-- Display Mode -->
+                <div id="modal-display-target">
+                    <p id="modal-target-price" class="price-tag"
+                       style="font-size: 1.8rem; color: var(--gold); margin-bottom: 2rem;"></p>
+                </div>
+                
+                <!-- Edit Mode (Hidden) -->
+                <div id="modal-edit-target" style="display: none; margin-bottom: 2rem;">
+                    <div style="display: flex; align-items: center; gap: 0.2rem;">
+                        <span style="color: var(--gold); font-size: 1.4rem; font-weight: 700;">₹</span>
+                        <input type="number" id="modal-input-target" class="input-field" 
+                               style="width: 100px; padding: 0.4rem; font-size: 1.2rem; border-color: var(--gold);" min="1" step="1">
+                    </div>
+                </div>
+
+                <div id="modal-display-actions">
+                    <button type="button" onclick="enterModalEditMode()" class="btn"
+                       style="display: block; text-align: center; margin-bottom: 0.65rem; font-size: 0.85rem; width: 100%;">
+                       Edit Target
+                    </button>
+                    <form id="modal-delete-form" method="POST"
+                          onsubmit="return confirm('Stop tracking this product?');">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                        <button type="submit" class="btn btn-delete"
+                                style="width: 100%; font-size: 0.85rem;">Delete</button>
+                    </form>
+                </div>
+
+                <div id="modal-edit-actions" style="display: none; flex-direction: column; gap: 0.65rem;">
+                    <button type="button" onclick="saveModalTarget()" class="btn" 
+                            style="width: 100%; font-size: 0.85rem; padding: 0.6rem; background: var(--success); color: white; box-shadow: none;">Save</button>
+                    <button type="button" onclick="cancelModalEdit()" class="btn btn-delete" 
+                            style="width: 100%; font-size: 0.85rem; padding: 0.6rem;">Cancel</button>
+                </div>
+            </div>
+
+            <!-- Right column – price history chart -->
+            <div id="modal-chart-section" style="flex: 1; min-width: 240px;">
+                <p style="color: var(--text-secondary); font-size: 0.72rem; margin-bottom: 0.5rem;
+                          letter-spacing: 0.07em; text-transform: uppercase;">Price History</p>
+                <canvas id="modal-chart"></canvas>
+            </div>
+
+            <!-- No-history fallback -->
+            <div id="modal-no-history"
+                 style="display:none; flex: 1; text-align: center; padding: 1.5rem 0;
+                        color: var(--text-secondary); font-size: 0.9rem; line-height: 1.7;">
+                No price history yet.<br>
+                <small style="font-size: 0.78rem;">Save a target price to start logging.</small>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+
+<!-- ── Embed all product data for JS ──────────────────────── -->
+<script>
+const productData = {
+    {% for product in products %}
+    "{{ product.id }}": {
+        title:        {{ (product.product_title or 'Pending Title') | tojson }},
+        url:          {{ product.url | tojson }},
+        currentPrice: {{ product.current_price | tojson }},
+        targetPrice:  {{ product.target_price  | tojson }},
+        priceStatus:  "{{ product.price_status }}",
+        dates:        {{ product.history_dates  | tojson }},
+        prices:       {{ product.history_prices | tojson }},
+        editUrl:      "{{ url_for('track_product', product_id=product.id) }}",
+        deleteUrl:    "{{ url_for('delete_product', product_id=product.id) }}"
+    }{% if not loop.last %},{% endif %}
+    {% endfor %}
+};
+
+let activeChart = null;
+let currentModalProductId = null;
+
+function openModal(id) {
+    const d = productData[String(id)];
+    if (!d) return;
+
+    currentModalProductId = id;
+
+    // Reset modal edit state
+    cancelModalEdit();
+
+    // Fill text
+    document.getElementById('modal-title').textContent        = d.title;
+    document.getElementById('modal-store-link').href          = d.url;
+    document.getElementById('modal-current-price').textContent = '₹' + (d.currentPrice ?? '---');
+    document.getElementById('modal-current-price').className   =
+        'price-tag ' + (d.priceStatus === 'green' ? 'status-green' : d.priceStatus === 'red' ? 'status-red' : '');
+    document.getElementById('modal-target-price').textContent  = '₹' + (d.targetPrice ?? '---');
+    document.getElementById('modal-delete-form').action        = d.deleteUrl;
+
+    // Show/hide chart vs no-history placeholder
+    const chartSection = document.getElementById('modal-chart-section');
+    const noHistory    = document.getElementById('modal-no-history');
+
+    if (d.prices && d.prices.length > 0) {
+        chartSection.style.display = 'block';
+        noHistory.style.display    = 'none';
+        initModalChart(d.dates, d.prices);
+    } else {
+        chartSection.style.display = 'none';
+        noHistory.style.display    = 'block';
+        if (activeChart) { activeChart.destroy(); activeChart = null; }
+    }
+
+    // Open overlay
+    document.getElementById('modal-overlay').classList.add('active');
+}
+
+function closeModal() {
+    document.getElementById('modal-overlay').classList.remove('active');
+    if (activeChart) { activeChart.destroy(); activeChart = null; }
+    currentModalProductId = null;
+}
+
+function enterModalEditMode() {
+    if (!currentModalProductId) return;
+    const d = productData[String(currentModalProductId)];
+    
+    document.getElementById('modal-input-target').value = d.targetPrice || '';
+    
+    document.getElementById('modal-display-target').style.display = 'none';
+    document.getElementById('modal-display-actions').style.display = 'none';
+    
+    document.getElementById('modal-edit-target').style.display = 'block';
+    document.getElementById('modal-edit-actions').style.display = 'flex';
+}
+
+function cancelModalEdit() {
+    document.getElementById('modal-edit-target').style.display = 'none';
+    document.getElementById('modal-edit-actions').style.display = 'none';
+    
+    document.getElementById('modal-display-target').style.display = 'block';
+    document.getElementById('modal-display-actions').style.display = 'block';
+}
+
+async function saveModalTarget() {
+    if (!currentModalProductId) return;
+    
+    const id = currentModalProductId;
+    const input = document.getElementById('modal-input-target');
+    const newTarget = parseFloat(input.value);
+
+    if (isNaN(newTarget) || newTarget <= 0) {
+        alert("Please enter a valid target price greater than 0.");
+        return;
+    }
+
+    const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+    const btn = document.querySelector(`#modal-edit-actions button:first-child`);
+    
+    // UI Loading state
+    btn.textContent = "Saving...";
+    btn.disabled = true;
+
+    try {
+        const res = await fetch(`/api/update_target/${id}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': csrfToken
+            },
+            body: JSON.stringify({ target_price: newTarget })
+        });
+
+        const data = await res.json();
+        
+        if (data.success) {
+            // Update modal UI instantly
+            document.getElementById('modal-target-price').textContent = '₹' + data.new_target;
+            
+            // Update global data object
+            productData[String(id)].targetPrice = data.new_target;
+            productData[String(id)].priceStatus = data.status;
+
+            // Optional: update current price color if status changed inside modal
+            const currentPriceNode = document.getElementById('modal-current-price');
+            currentPriceNode.className = 'price-tag ' + (data.status === 'green' ? 'status-green' : data.status === 'red' ? 'status-red' : '');
+
+            // Also update the UI card in the background so it is updated when modal closes
+            document.getElementById('card-target-' + id).textContent = '₹' + data.new_target;
+            const cardCurrentPriceNode = document.getElementById('card-current-' + id);
+            cardCurrentPriceNode.className = 'price-tag ' + (data.status === 'green' ? 'status-green' : data.status === 'red' ? 'status-red' : '');
+            
+            // Exit edit mode smoothly
+            cancelModalEdit();
+        } else {
+            alert(data.error || "Failed to save target price.");
+        }
+    } catch (err) {
+        alert("An error occurred while saving.");
+    } finally {
+        btn.textContent = "Save";
+        btn.disabled = false;
+    }
+}
+
+function initModalChart(dates, prices) {
+    if (activeChart) { activeChart.destroy(); activeChart = null; }
+    const ctx = document.getElementById('modal-chart').getContext('2d');
+    activeChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: dates,
+            datasets: [{
+                label: 'Price (₹)',
+                data: prices,
+                borderColor: '#a78bfa',
+                backgroundColor: 'rgba(139, 92, 246, 0.12)',
+                borderWidth: 2.5,
+                pointBackgroundColor: '#d4af37',
+                pointBorderColor:     '#d4af37',
+                pointRadius: 5,
+                pointHoverRadius: 7,
+                tension: 0.4,
+                fill: true
+            }]
+        },
+        options: {
+            responsive: true,
+            animation: { duration: 500 },
+            plugins: {
+                legend: { display: false },
+                tooltip: {
+                    callbacks: { label: c => ' ₹' + c.parsed.y },
+                    backgroundColor: 'rgba(11,9,28,0.94)',
+                    borderColor: 'rgba(167,139,250,0.35)',
+                    borderWidth: 1,
+                    titleColor: '#a78bfa',
+                    bodyColor:  '#e2d9f3',
+                    cornerRadius: 6
+                }
+            },
+            scales: {
+                x: { ticks: { color: '#94a3b8', font: { size: 10 } }, grid: { color: 'rgba(255,255,255,0.04)' } },
+                y: { ticks: { color: '#94a3b8', font: { size: 10 }, callback: v => '₹' + v },
+                     grid: { color: 'rgba(255,255,255,0.04)' } }
+            }
+        }
+    });
+}
+
+// Close on Escape key
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal(); });
+
+// Auto-scroll + highlight + open modal when redirected from duplicate
+window.addEventListener('DOMContentLoaded', () => {
+    const highlightId = new URLSearchParams(window.location.search).get('highlight');
+    if (!highlightId) return;
+
+    const card = document.getElementById('product-' + highlightId);
+    if (!card) return;
+
+    setTimeout(() => {
+        card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        card.classList.add('highlight-pulse');
+        setTimeout(() => openModal(parseInt(highlightId)), 450);
+    }, 350);
+
+    setTimeout(() => card.classList.remove('highlight-pulse'), 3200);
+});
+
+// ── Inline Edit Logic ────────────────────────
+let editingCardId = null;
+
+function enterEditMode(id) {
+    if (editingCardId !== null && editingCardId !== id) {
+        cancelEdit(editingCardId); // Ensure only one is editable
+    }
+
+    const d = productData[String(id)];
+    document.getElementById('input-target-' + id).value = d.targetPrice || '';
+    
+    document.getElementById('display-target-' + id).style.display = 'none';
+    document.getElementById('display-actions-' + id).style.display = 'none';
+    
+    document.getElementById('edit-target-' + id).style.display = 'block';
+    document.getElementById('edit-actions-' + id).style.display = 'flex';
+    
+    editingCardId = id;
+}
+
+function cancelEdit(id) {
+    document.getElementById('edit-target-' + id).style.display = 'none';
+    document.getElementById('edit-actions-' + id).style.display = 'none';
+    
+    document.getElementById('display-target-' + id).style.display = 'block';
+    document.getElementById('display-actions-' + id).style.display = 'flex';
+    
+    if (editingCardId === id) editingCardId = null;
+}
+
+async function saveTarget(id) {
+    const input = document.getElementById('input-target-' + id);
+    const newTarget = parseFloat(input.value);
+
+    if (isNaN(newTarget) || newTarget <= 0) {
+        alert("Please enter a valid target price greater than 0.");
+        return;
+    }
+
+    const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+    const btn = document.querySelector(`#edit-actions-${id} button:first-child`);
+    
+    // UI Loading state
+    btn.textContent = "Saving...";
+    btn.disabled = true;
+
+    try {
+        const res = await fetch(`/api/update_target/${id}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': csrfToken
+            },
+            body: JSON.stringify({ target_price: newTarget })
+        });
+
+        const data = await res.json();
+        
+        if (data.success) {
+            // Update UI instantly
+            document.getElementById('card-target-' + id).textContent = '₹' + data.new_target;
+            
+            // Update global data object
+            productData[String(id)].targetPrice = data.new_target;
+            productData[String(id)].priceStatus = data.status;
+
+            // Optional: update current price color if status changed
+            const currentPriceNode = document.getElementById('card-current-' + id);
+            currentPriceNode.className = 'price-tag ' + (data.status === 'green' ? 'status-green' : data.status === 'red' ? 'status-red' : '');
+
+            // Exit edit mode smoothly
+            cancelEdit(id);
+        } else {
+            alert(data.error || "Failed to save target price.");
+        }
+    } catch (err) {
+        alert("An error occurred while saving.");
+    } finally {
+        btn.textContent = "Save";
+        btn.disabled = false;
+    }
+}
+</script>
 {% endblock %}

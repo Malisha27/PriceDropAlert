@@ -6,20 +6,22 @@
 <div class="center-wrapper" style="text-align: center; display: flex; flex-direction: column; justify-content: center; align-items: center; min-height: 70vh;">
     <h1 style="font-size: 4.5rem; margin-bottom: 1.5rem; background: -webkit-linear-gradient(#fff, #a78bfa); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">Never Miss a Price Drop.</h1>
     <p style="font-size: 1.3rem; color: var(--text-secondary); max-width: 600px; margin-bottom: 3rem; line-height: 1.6;">
-        Track prices on Amazon, Flipkart, Nykaa, and boAt. Get an instant email alert when the price hits your target.
+        Track prices on Amazon, Flipkart, Myntra, and boAt. Get an instant email alert when the price hits your target.
     </p>
     
     <div style="display: flex; gap: 1.5rem;">
         <a href="{{ url_for('signIn') }}" class="btn" style="padding: 1rem 2.5rem; font-size: 1.1rem;">Log In</a>
-        <a href="{{ url_for('signUp') }}" class="btn" style="padding: 1rem 2.5rem; font-size: 1.1rem; background: rgba(255,255,255,0.1); box-shadow: none;">Register Now</a>
+        <a href="{{ url_for('signUp') }}" class="btn" style="padding: 1rem 2.5rem; font-size: 1.1rem; background: linear-gradient(135deg, #6d28d9 0%, #4c1d95 100%);">Register Now</a>
     </div>
 
-    <div style="margin-top: 4rem; display: flex; gap: 2rem; opacity: 0.5; font-size: 1.2rem; align-items: center; flex-wrap: wrap; justify-content: center;">
-        <span>Supported Stores:</span>
-        <span style="font-weight: bold; color: white;">Amazon</span>
-        <span style="font-weight: bold; color: white;">Flipkart</span>
-        <span style="font-weight: bold; color: white;">Nykaa</span>
-        <span style="font-weight: bold; color: white;">boAt</span>
+    <div class="stores-section" style="margin-top: 5rem;">
+        <h3 class="stores-title" style="color: rgba(255,255,255,0.4);">SUPPORTED STORES</h3>
+        <div class="store-badges">
+            <div class="store-badge">Amazon</div>
+            <div class="store-badge">Flipkart</div>
+            <div class="store-badge">Myntra</div>
+            <div class="store-badge">boAt</div>
+        </div>
     </div>
 </div>
 {% endblock %}
