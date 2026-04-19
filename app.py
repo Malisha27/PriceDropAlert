@@ -85,7 +85,7 @@ def load_user(user_id):
 
 def send_mail(to_email, product_title, product_url, target_price):
     try:
-        sender_email = '27demonstration@gmail.com'
+        sender_email = 'pricedropppp@gmail.com'
         sender_password = os.environ.get('EMAIL_PASSWORD')  # ⚠️ Uses environment variable
 
         # Set up the MIME
@@ -573,7 +573,7 @@ def feedback():
         if not message_body:
             return {"error": "Feedback message cannot be empty."}, 400
 
-        sender_email = '27demonstration@gmail.com'
+        sender_email = 'pricedropppp@gmail.com'
         sender_password = os.environ.get('EMAIL_PASSWORD')
         recipient_email = '27midnightlabs@gmail.com'
         user_email = current_user.email
