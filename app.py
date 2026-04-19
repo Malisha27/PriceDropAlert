@@ -217,9 +217,6 @@ def track_product(product_id):
         return redirect(url_for('home'))
     
     URL = product.url
-    import urllib.parse
-    safe_url = urllib.parse.quote(URL)
-    SCRAPERAPI_KEY = os.environ.get('SCRAPERAPI_KEY')
     CHROME_UA = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36"
     GOOGLEBOT_UA = "Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)"
 
@@ -250,17 +247,9 @@ def track_product(product_id):
         print(f"[Bot-bypass] Resolved: {URL} → {final_url}")
         soup2 = BeautifulSoup(bot_resp.content, "html.parser")
     else:
-        final_url = URL
-        api_url = f'http://api.scraperapi.com/?api_key={SCRAPERAPI_KEY}&url={safe_url}'
-        try:
-            response = requests.get(api_url, timeout=30)
-            if response.status_code == 200:
-                soup2 = BeautifulSoup(response.content, "html.parser")
-            else:
-                raise Exception("ScraperAPI Error")
-        except:
-            fallback_resp = requests.get(URL, headers={"User-Agent": CHROME_UA}, timeout=30, allow_redirects=True)
-            soup2 = BeautifulSoup(fallback_resp.content, "html.parser")
+        fallback_resp = requests.get(URL, headers={"User-Agent": CHROME_UA}, timeout=30, allow_redirects=True)
+        final_url = fallback_resp.url
+        soup2 = BeautifulSoup(fallback_resp.content, "html.parser")
 
     # Step 1: Identify website using FINAL resolved URL
     if "flipkart.com" in final_url:

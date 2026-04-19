@@ -110,9 +110,6 @@ def clean_price(price_str):
     return float(price_str)
 
 def fetch_current_price(product_url):
-    SCRAPERAPI_KEY = os.environ.get('SCRAPERAPI_KEY')
-    import urllib.parse
-    safe_url = urllib.parse.quote(product_url)
     GOOGLEBOT_UA = "Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)"
     CHROME_UA = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36"
 
@@ -141,17 +138,13 @@ def fetch_current_price(product_url):
             print(f"[Flipkart] Request failed: {e}")
             return None
     else:
-        api_url = f'http://api.scraperapi.com/?api_key={SCRAPERAPI_KEY}&url={safe_url}'
         try:
-            response = requests.get(api_url, timeout=30)
-            if response.status_code == 200:
-                soup2 = BeautifulSoup(response.content, "html.parser")
-            else:
-                raise Exception("ScraperAPI Error")
-        except:
-            headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"}
+            headers = {"User-Agent": CHROME_UA}
             fallback_resp = requests.get(product_url, headers=headers, timeout=30, allow_redirects=True)
             soup2 = BeautifulSoup(fallback_resp.content, "html.parser")
+        except Exception as e:
+            print(f"[Fallback] Request failed: {e}")
+            return None
 
     if "flipkart.com" in product_url:
         try:
