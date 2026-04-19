@@ -353,16 +353,43 @@ def track_product(product_id):
                 product_image = "https://upload.wikimedia.org/wikipedia/commons/a/a3/Image-not-found.png"
 
         elif platform == "flipkart":
-        # FLIPKART — parsed via OG meta tags + regex (Googlebot gets SEO markup, not desktop React)
+        # FLIPKART — parsed via OG meta tags + JSON-LD + <title> fallbacks
 
-            # Title: og:title is long ("Buy XYZ | Flipkart.com"), so trim at first " - "
-            title_tag = soup2.find('meta', property='og:title')
-            if title_tag and title_tag.get('content'):
-                raw_title = title_tag['content']
-                # Strip common Flipkart SEO suffixes like " - Buy ... | Flipkart.com"
-                product_title = re.split(r' - Buy | \| ', raw_title)[0].strip()
-            else:
-                product_title = "Flipkart Product"
+            product_title = None
+
+            # Strategy 1: JSON-LD Product schema
+            for ld_tag in soup2.find_all('script', type='application/ld+json'):
+                try:
+                    ld = json.loads(ld_tag.string or '')
+                    items = ld if isinstance(ld, list) else [ld]
+                    for item in items:
+                        if item.get('@type') == 'Product' and item.get('name'):
+                            product_title = item['name'].strip()
+                            break
+                except Exception:
+                    pass
+                if product_title:
+                    break
+
+            # Strategy 2: og:title — strip SEO suffixes, reject generic values
+            if not product_title:
+                title_tag = soup2.find('meta', property='og:title')
+                if title_tag and title_tag.get('content'):
+                    raw_title = title_tag['content']
+                    cleaned = re.split(r' - Buy | \| ', raw_title)[0].strip()
+                    if cleaned.lower() not in ('flipkart.com', 'flipkart', ''):
+                        product_title = cleaned
+
+            # Strategy 3: HTML <title> tag
+            if not product_title:
+                title_el = soup2.find('title')
+                if title_el:
+                    raw = title_el.get_text(strip=True)
+                    cleaned = re.split(r' - Buy | \| | at Best Price', raw)[0].strip()
+                    if cleaned.lower() not in ('flipkart.com', 'flipkart', ''):
+                        product_title = cleaned
+
+            product_title = product_title or "Flipkart Product"
 
             # Price: scan all text nodes containing ₹, pick the first valid number
             prices = []
