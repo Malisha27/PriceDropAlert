@@ -3,15 +3,21 @@
 {% block title %}Welcome to PriceDropAlert{% endblock %}
 
 {% block content %}
-<div class="center-wrapper" style="text-align: center; display: flex; flex-direction: column; justify-content: center; align-items: center; min-height: 70vh;">
-    <h1 style="font-size: 4.5rem; margin-bottom: 1.5rem; background: -webkit-linear-gradient(#fff, #a78bfa); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">Never Miss a Price Drop.</h1>
-    <p style="font-size: 1.3rem; color: var(--text-secondary); max-width: 600px; margin-bottom: 3rem; line-height: 1.6;">
+<div class="center-wrapper"
+    style="text-align: center; display: flex; flex-direction: column; justify-content: center; align-items: center; min-height: 70vh;">
+    <h1
+        style="font-size: 4.5rem; margin-bottom: 1.5rem; background: -webkit-linear-gradient(#fff, #a78bfa); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">
+        Never Miss a Price Drop.</h1>
+    <p
+        style="font-size: 1.3rem; color: var(--text-secondary); max-width: 600px; margin-bottom: 3rem; line-height: 1.6;">
         Track prices on Amazon, Flipkart, Myntra, and boAt. Get an instant email alert when the price hits your target.
     </p>
-    
+
     <div style="display: flex; gap: 1.5rem;">
         <a href="{{ url_for('signIn') }}" class="btn" style="padding: 1rem 2.5rem; font-size: 1.1rem;">Log In</a>
-        <a href="{{ url_for('signUp') }}" class="btn" style="padding: 1rem 2.5rem; font-size: 1.1rem; background: linear-gradient(135deg, #6d28d9 0%, #4c1d95 100%);">Register Now</a>
+        <a href="{{ url_for('signUp') }}" class="btn"
+            style="padding: 1rem 2.5rem; font-size: 1.1rem; background: linear-gradient(135deg, #6d28d9 0%, #4c1d95 100%);">Register
+            Now</a>
     </div>
 
     <div class="stores-section" style="margin-top: 5rem;">
