@@ -627,9 +627,9 @@ def scheduled_job():
         print("Running scheduled price check...")
         update_prices_and_notify()
 
-if __name__ == '__main__':
-    with app.app_context():
-        db.create_all()
+# Create the database tables automatically when the app starts
+with app.app_context():
+    db.create_all()
 
+if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000)
-   
